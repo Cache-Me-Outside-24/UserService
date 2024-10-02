@@ -1,2 +1,2 @@
-# fornite
-Backend Repo for Group Expense Manager
+# User Service
+Backend Repo for User Authentication and Login Management
