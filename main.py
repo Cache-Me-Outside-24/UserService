@@ -20,8 +20,12 @@ config = Config(environ={
     "GOOGLE_CLIENT_ID": os.getenv("GOOGLE_CLIENT_ID"),
     "GOOGLE_CLIENT_SECRET": os.getenv("GOOGLE_CLIENT_SECRET")
 })
+
+
 app = FastAPI()
+
 oauth = OAuth(config)
+
 app.add_middleware(SessionMiddleware, secret_key="123456")
 
 

@@ -2,10 +2,17 @@ import pymysql
 from dotenv import load_dotenv
 import os
 
+# Use our .env file to set up the environment variables.
 load_dotenv()
 
 class SQLMachine():
     def create_connection(self):
+        """
+        Creates a connection to the SQL database specified by the
+        environment variables.
+
+        Returns the connection.
+        """
         connection = pymysql.connect(
             host=os.getenv('DATABASE_IP'),
             port=int(os.getenv('DATABASE_PORT')),
@@ -16,13 +23,18 @@ class SQLMachine():
         return connection
 
     def select(self, schema, table, ):
+        """
+        Select everything from a certain table in a schema within
+        the database.
+        """
+        # construct our query.
+        query = f"SELECT * FROM {schema}.{table}"
+
         connection = self.create_connection()
-
         with connection.cursor() as cursor:
-            query = f"SELECT * FROM {schema}.{table}"
             cursor.execute(query)
-
             result = cursor.fetchall()
         
         connection.close()
+
         return result
