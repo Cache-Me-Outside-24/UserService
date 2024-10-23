@@ -38,3 +38,16 @@ class SQLMachine():
         connection.close()
 
         return result
+
+    def insert(self, schema, table, data):
+        columns = ', '.join(data.keys())
+        placeholders = ', '.join(['%s'] * len(data))
+
+        query = f"INSERT INTO {schema}.{table} ({columns}) VALUES ({placeholders})"
+
+        connection = self.create_connection()
+        with connection.cursor() as cursor:
+            cursor.execute(query, tuple(data.values()))
+        
+        connection.close()
+        

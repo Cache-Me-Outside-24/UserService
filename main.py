@@ -40,31 +40,6 @@ google = oauth.register(
     jwks_uri="https://www.googleapis.com/oauth2/v3/certs"
 )
 
-def get_response_html(profile):
-
-    name = profile["name"]
-    picture = profile["picture"]
-    email = profile["email"]
-
-    html = f"""
-    <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Login Result</title>
-        </head>
-        <body>
-        <h1>Login Success!</h1>
-        Full name: {name}<br>
-        Email: {email}<br>
-        <br>
-        <a href="{picture}">Profile Picture</a>
-        </body>
-    </html>
-    """
-
-    return html
-
 def get_user_info(access_token):
     auth = "Bearer " + access_token
     headers = {"Authorization": auth}
@@ -79,13 +54,13 @@ def get_user_info(access_token):
     return result
 
 
-@app.post('/sign_up')
+@app.get('/sign-up')
 async def sign_up(request: Request):
     # Redirect the user to Google's OAuth2 authorization URL
-    redirect_uri = 'http://localhost:8000/auth/callback'  # The callback URL
+    redirect_uri = 'http://localhost:8000/auth/callback'  # TODO: Change callback url to adapt to prod server
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
-@app.get('/auth/callback')
+@app.get('/auth/callback') # TODO: should change to be separate from signup
 async def auth(request: Request):
     # Get the token and user info after user authorization
     try:
@@ -103,10 +78,18 @@ async def auth(request: Request):
         profile = get_user_info(access_token)
         print("Full profile = \n", json.dumps(profile, indent=2))
 
-        result_html = get_response_html(profile)
+        profile_data = {
+            "name": profile['name'],
+            "email": profile['email'],
+            "currency_preference": "USD",
+            "profile_pic": profile['picture']
+        }
+
+        sql = SQLMachine()
+        sql.insert("user_service_db", "user", profile_data)
 
         # return JSONResponse({"message": "Login successful", "user profile": profile})
-        return HTMLResponse(result_html)
+        return HTMLResponse("Success!")
     except Exception as e:
         raise HTTPException(status_code=400, detail="Authentication failed")
 
