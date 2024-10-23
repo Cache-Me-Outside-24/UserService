@@ -14,20 +14,16 @@ import json
 
 load_dotenv()
 
-
-
 config = Config(environ={
     "GOOGLE_CLIENT_ID": os.getenv("GOOGLE_CLIENT_ID"),
     "GOOGLE_CLIENT_SECRET": os.getenv("GOOGLE_CLIENT_SECRET")
 })
-
 
 app = FastAPI()
 
 oauth = OAuth(config)
 
 app.add_middleware(SessionMiddleware, secret_key="123456")
-
 
 google = oauth.register(
     name='google',
@@ -83,8 +79,8 @@ def get_user_info(access_token):
     return result
 
 
-@app.get('/login')
-async def login(request: Request):
+@app.post('/sign_up')
+async def sign_up(request: Request):
     # Redirect the user to Google's OAuth2 authorization URL
     redirect_uri = 'http://localhost:8000/auth/callback'  # The callback URL
     return await oauth.google.authorize_redirect(request, redirect_uri)
@@ -98,7 +94,7 @@ async def auth(request: Request):
 
         # user = await oauth.google.parse_id_token(token)
         user = token.get('userinfo')
-       # user2 = await oauth.google.parse_id_token(request, token)
+        # user2 = await oauth.google.parse_id_token(request, token)
 
         # Store user info in the session (you can store more details if needed)
         # request.session['user'] = dict(user)
