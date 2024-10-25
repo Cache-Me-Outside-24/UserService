@@ -1,98 +1,51 @@
-from typing import Union
 from fastapi import FastAPI, Depends, HTTPException
 from services.sql_comands import SQLMachine
-from authlib.integrations.starlette_client import OAuth
-from starlette.config import Config
-from starlette.requests import Request
-from starlette.middleware.sessions import SessionMiddleware
-from dotenv import load_dotenv
-from starlette.requests import Request
-from starlette.responses import JSONResponse, HTMLResponse
-import requests
-import os
-import json
-
-load_dotenv()
-
-config = Config(environ={
-    "GOOGLE_CLIENT_ID": os.getenv("GOOGLE_CLIENT_ID"),
-    "GOOGLE_CLIENT_SECRET": os.getenv("GOOGLE_CLIENT_SECRET")
-})
+from pydantic import BaseModel
+from starlette.responses import HTMLResponse
+import uvicorn
 
 app = FastAPI()
 
-oauth = OAuth(config)
 
-app.add_middleware(SessionMiddleware, secret_key="123456")
+# Define a Pydantic model for the request body
+class UserSignUp(BaseModel):
+    user_email: str
+    username: str
 
-google = oauth.register(
-    name='google',
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-    access_token_url="https://accounts.google.com/o/oauth2/token",
-    access_token_params=None,
-    authorize_url="https://accounts.google.com/o/oauth2/auth",
-    authorize_params=None,
-    api_base_url="https://www.googleapis.com/oauth2/v1/",
-    userinfo_endpoint="https://openidconnect.googleapis.com/v1/userinfo",
-    # This is only needed if using openId to fetch user info
-    client_kwargs={"scope": "email profile"},
-    jwks_uri="https://www.googleapis.com/oauth2/v3/certs"
-)
 
-def get_user_info(access_token):
-    auth = "Bearer " + access_token
-    headers = {"Authorization": auth}
-    rsp = requests.get("https://www.googleapis.com/oauth2/v3/userinfo", headers=headers)
+# Default profile picture link
+DEFAULT_PROFILE_PIC = "https://example.com/default-profile-pic.png"
+DEFAULT_CURRENCY = "USD"
+
+
+@app.post("/sign-up")
+async def sign_up(user: UserSignUp):
+    """
+    Sign up endpoint that takes user_email and username,
+    inserts them into the SQL database with default values for profile_pic and currency_preference.
+    """
+    # Data to insert into the database
+    profile_data = {
+        "name": user.username,
+        "email": user.user_email,
+        "currency_preference": DEFAULT_CURRENCY,
+        "profile_pic": DEFAULT_PROFILE_PIC,
+    }
 
     try:
-        result = rsp.json()
-    except Exception as e:
-        print("get_user_info: Exception = ", e)
-        result = None
-
-    return result
-
-
-@app.get('/sign-up')
-async def sign_up(request: Request):
-    # Redirect the user to Google's OAuth2 authorization URL
-    redirect_uri = 'http://localhost:8000/auth/callback'  # TODO: Change callback url to adapt to prod server
-    return await oauth.google.authorize_redirect(request, redirect_uri)
-
-@app.get('/auth/callback') # TODO: should change to be separate from signup
-async def auth(request: Request):
-    # Get the token and user info after user authorization
-    try:
-        token = await oauth.google.authorize_access_token(request)
-        access_token = token.get("access_token")
-
-        # user = await oauth.google.parse_id_token(token)
-        user = token.get('userinfo')
-        # user2 = await oauth.google.parse_id_token(request, token)
-
-        # Store user info in the session (you can store more details if needed)
-        # request.session['user'] = dict(user)
-        print("User = ", user)
-
-        profile = get_user_info(access_token)
-        print("Full profile = \n", json.dumps(profile, indent=2))
-
-        profile_data = {
-            "name": profile['name'],
-            "email": profile['email'],
-            "currency_preference": "USD",
-            "profile_pic": profile['picture']
-        }
-
+        # Insert into the SQL database
         sql = SQLMachine()
         sql.insert("user_service_db", "user", profile_data)
-
-        # return JSONResponse({"message": "Login successful", "user profile": profile})
-        return HTMLResponse("Success!")
+        return HTMLResponse("User successfully signed up!")
     except Exception as e:
-        raise HTTPException(status_code=400, detail="Authentication failed")
+        print(f"Error inserting user into the database: {e}")
+        raise HTTPException(status_code=500, detail="Failed to sign up the user")
+
 
 @app.get("/")
 def get_root():
-    return {"do it work"}
+    return {"message": "Service is running"}
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
