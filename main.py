@@ -11,6 +11,7 @@ app = FastAPI()
 class UserSignUp(BaseModel):
     user_email: str
     username: str
+    uid: str
 
 
 # Default profile picture link
@@ -28,6 +29,7 @@ async def sign_up(user: UserSignUp):
     profile_data = {
         "name": user.username,
         "email": user.user_email,
+        "id": user.uid,
         "currency_preference": DEFAULT_CURRENCY,
         "profile_pic": DEFAULT_PROFILE_PIC,
     }
