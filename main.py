@@ -3,8 +3,17 @@ from services.sql_comands import SQLMachine
 from pydantic import BaseModel
 from starlette.responses import HTMLResponse
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (POST, GET, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 
 # Define a Pydantic model for the request body
