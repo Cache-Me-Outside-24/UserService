@@ -46,7 +46,7 @@ async def sign_up(user: UserSignUp):
     try:
         # Insert into the SQL database
         sql = SQLMachine()
-        sql.insert("user_service_db", "user", profile_data)
+        sql.insert("user_service_db", "users", profile_data)
         return HTMLResponse("User successfully signed up!")
     except Exception as e:
         print(f"Error inserting user into the database: {e}")
