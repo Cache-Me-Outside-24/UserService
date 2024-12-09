@@ -50,4 +50,19 @@ class SQLMachine():
             cursor.execute(query, tuple(data.values()))
         
         connection.close()
+
+    def select_user_info(self, schema, table, user_id):
+        """
+        Select specific user information from the table in the database.
+        """
+        query = f"SELECT name, email, profile_pic FROM {schema}.{table} WHERE id = %s"
+
+        connection = self.create_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(query, (user_id,))
+                result = cursor.fetchone()
+                return result
+        finally:
+            connection.close()
         
