@@ -57,26 +57,25 @@ async def sign_up(user: UserSignUp):
 def get_root():
     return {"message": "Service is running"}
 
+
 @app.get("/user-info")
-async def get_user_info(user_id: str = Query(..., description="The user ID for which to fetch info")):
+async def get_user_info(
+    user_id: str = Query(..., description="The user ID for which to fetch info")
+):
     """
     API endpoint to get user information by user ID.
     """
     schema = "user_service_db"  # Replace with your actual schema name
-    table = "users"    # Replace with your actual table name
-    
+    table = "users"  # Replace with your actual table name
+
     sql = SQLMachine()
     result = sql.select_user_info(schema, table, user_id)
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # Map result to meaningful keys
-    return {
-        "username": result[0],
-        "email": result[1],
-        "profile-pic": result[2]
-    }
+    return {"username": result[0], "email": result[1], "profile-pic": result[2]}
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=4000, reload=True)
