@@ -55,7 +55,23 @@ async def sign_up(user: UserSignUp):
 
 @app.get("/")
 def get_root():
-    return {"message": "Service is running"}
+    microservice_info = {
+        "name": "User Service",
+        "description": "Manages user management and detail retrieval",
+    }
+    return microservice_info
+
+
+@app.get("/email-exists")
+async def email_exists(
+    email: str = Query(..., description="Email to check in the database")
+):
+    """
+    Check if a given email exists in the database.
+    """
+    sql = SQLMachine()
+    result = sql.select("user_service_db", "users", {"email": email})
+    return {"exists": bool(result)}
 
 
 @app.get("/user-info")
