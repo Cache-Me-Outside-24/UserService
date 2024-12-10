@@ -24,6 +24,12 @@ class UserSignUp(BaseModel):
     uid: str
 
 
+class UserProfileUpdateRequest(BaseModel):
+    user_id: str
+    username: str
+    profile_photo: str
+
+
 # Default profile picture link
 DEFAULT_PROFILE_PIC = "/assets/images/default_profile.png"
 DEFAULT_CURRENCY = "USD"
@@ -133,11 +139,14 @@ async def upload_profile_photo(file: UploadFile, user_id: str = Form(...)):
 
 
 @app.post("/update-profile")
-async def update_profile_info(user_id: str, username: str, profile_photo: str = None):
+async def update_profile_info(request: UserProfileUpdateRequest):
     """
     Updates the user's profile information in the SQL database.
     """
     try:
+        username = request.username
+        user_id = request.user_id
+        profile_photo = request.profile_photo
         sql = SQLMachine()
         sql.update(
             "user_service_db",
