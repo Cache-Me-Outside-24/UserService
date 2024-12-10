@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, Form
 from services.sql_comands import SQLMachine
 from pydantic import BaseModel
 from starlette.responses import HTMLResponse
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
+from google.cloud import storage
 
 app = FastAPI()
 
@@ -24,8 +25,30 @@ class UserSignUp(BaseModel):
 
 
 # Default profile picture link
-DEFAULT_PROFILE_PIC = "https://example.com/default-profile-pic.png"
+DEFAULT_PROFILE_PIC = "/assets/images/default_profile.png"
 DEFAULT_CURRENCY = "USD"
+# GCP Bucket Configuration
+BUCKET_NAME = "cache-me-outside"
+
+
+def upload_to_gcp(file: UploadFile, destination_blob_name: str) -> str:
+    """
+    Uploads a file to GCP bucket and returns the public URI.
+    """
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blob = bucket.blob(destination_blob_name)
+
+        # Upload the file
+        blob.upload_from_file(file.file)
+
+        # Make the file publicly accessible
+        blob.make_public()
+
+        return blob.public_url
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload photo: {str(e)}")
 
 
 @app.post("/sign-up")
@@ -91,6 +114,42 @@ async def get_user_info(
 
     # Map result to meaningful keys
     return {"username": result[0], "email": result[1], "profile-pic": result[2]}
+
+
+@app.post("/upload-photo")
+async def upload_profile_photo(file: UploadFile, user_id: str = Form(...)):
+    """
+    Uploads a profile photo to the GCP bucket and renames it to {user_id}_photo.ext.
+    """
+    try:
+        file_extension = file.filename.split(".")[-1]
+        destination_blob_name = f"user/{user_id}_photo.{file_extension}"
+
+        # Upload to GCP bucket
+        public_url = upload_to_gcp(file, destination_blob_name)
+        return {"uri": public_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload photo: {str(e)}")
+
+
+@app.post("/update-profile")
+async def update_profile_info(user_id: str, username: str, profile_photo: str = None):
+    """
+    Updates the user's profile information in the SQL database.
+    """
+    try:
+        sql = SQLMachine()
+        sql.update(
+            "user_service_db",
+            "users",
+            {"name": username, "profile_pic": profile_photo},
+            {"id": user_id},
+        )
+        return {"message": "Profile updated successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update profile: {str(e)}"
+        )
 
 
 if __name__ == "__main__":
