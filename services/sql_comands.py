@@ -23,21 +23,25 @@ class SQLMachine:
         )
         return connection
 
-    def select(
-        self,
-        schema,
-        table,
-    ):
+    def select(self, schema, table, data=None):
         """
         Select everything from a certain table in a schema within
         the database.
         """
-        # construct our query.
-        query = f"SELECT * FROM {schema}.{table}"
+
+        if data is not None:
+            conditions = [f"{x} = %s" for x in data]
+            conditions = " AND ".join(conditions)
+            query = f"SELECT * FROM {schema}.{table} WHERE {conditions}"
+            values = tuple(data.values())
+        else:
+            # construct our query.
+            query = f"SELECT * FROM {schema}.{table}"
+            values = ()
 
         connection = self.create_connection()
         with connection.cursor() as cursor:
-            cursor.execute(query)
+            cursor.execute(query, values)
             result = cursor.fetchall()
 
         connection.close()
